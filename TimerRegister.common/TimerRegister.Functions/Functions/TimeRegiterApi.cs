@@ -12,7 +12,6 @@ using TimerRegister.common.Responses;
 using TimerRegister.common.Models;
 using TimerRegister.Functions.Entities;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Linq;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.Azure;
@@ -121,8 +120,8 @@ namespace TimerRegister.Functions.Functions
 
         }
 
-        [FunctionName(nameof(GetAllTodo))]
-        public static async Task<IActionResult> GetAllTodo(
+        [FunctionName(nameof(GetAllRegistedTime))]
+        public static async Task<IActionResult> GetAllRegistedTime(
    [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "timeregister")] HttpRequest req,
    [Table("timeregister", Connection = "AzureWebJobsStorage")] CloudTable timeregisterTable,
    ILogger log)
@@ -219,12 +218,11 @@ namespace TimerRegister.Functions.Functions
         }
 
 
-        [FunctionName(nameof(GetAlltimeregisterBydate))]
-        public static async Task<IActionResult> GetAlltimeregisterBydate(
- [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "timeregister/{date}")] HttpRequest req,
+        [FunctionName(nameof(GetConsolidate))]
+        public static async Task<IActionResult> GetConsolidate(
+ [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "timeregister/Consolidate")] HttpRequest req,
  [Table("timeregister", Connection = "AzureWebJobsStorage")] CloudTable timeregisterTable,
  [Table("ConsolidateRegister", Connection = "AzureWebJobsStorage")] CloudTable consolidateRegisterTable,
- DateTime date,
     ILogger log)
         {
             log.LogInformation("Get all todos received.");
@@ -304,11 +302,7 @@ namespace TimerRegister.Functions.Functions
                         if (j != i)
                         {
                             if (listTimeregister[i].EmployeeId == listTimeregister[j].EmployeeId)
-                            {
-                                if (listTimeregister[i].EmployeeId == 3)
-                                {
-                                    Console.WriteLine("sistas");
-                                }
+                            {                                
                                 if ((listTimeregister[j].TypeEntry == 1) && (!listTimeregister[j].Consolidated))
                                 {
 
@@ -341,58 +335,61 @@ namespace TimerRegister.Functions.Functions
                     }
                 }
 
-                if (!(tiemposalida == DateTime.MaxValue) || !(tiempoingreso == DateTime.MaxValue))
+               if (tiemposalida != DateTime.MaxValue)
                 {
-                    Consolidated objconsilidate = new Consolidated();
-                    TimeSpan minutos = tiemposalida - tiempoingreso;
-                    double intmunitos = minutos.TotalMinutes;
-                    listTimeregister[posicioni].Consolidated = true;
-                    listTimeregister[posicionj].Consolidated = true;
-                    TableOperation findOperationi = TableOperation.Retrieve<TimeregisterEntity>("TimeRegister", listTimeregister[posicioni].RowKey);
-                    TableResult findResulti = await timeregisterTable.ExecuteAsync(findOperationi);
-                    TimeregisterEntity timeregisterEntityi = (TimeregisterEntity)findResulti.Result;
-                    timeregisterEntityi.Consolidated = true;
-                    TableOperation addOperationi = TableOperation.Replace(timeregisterEntityi);
-                    await timeregisterTable.ExecuteAsync(addOperationi);
-
-                    TableOperation findOperationj = TableOperation.Retrieve<TimeregisterEntity>("TimeRegister", listTimeregister[posicionj].RowKey);
-                    TableResult findResultj = await timeregisterTable.ExecuteAsync(findOperationj);
-                    TimeregisterEntity timeregisterEntityj = (TimeregisterEntity)findResultj.Result;
-                    timeregisterEntityj.Consolidated = true;
-                    TableOperation addOperationj = TableOperation.Replace(timeregisterEntityj);
-                    await timeregisterTable.ExecuteAsync(addOperationj);
-
-
-
-                    objconsilidate.EmployeeId = listTimeregister[posicioni].EmployeeId;
-                    //objconsilidate.Date =listTimeregister[posicioni].Date;
-                    DateTime aux = Convert.ToDateTime(listTimeregister[posicioni].Date);
-                    string straux = aux.ToString("yyyy-MM-dd");
-                    objconsilidate.Date = straux;
-                    objconsilidate.Minutes = intmunitos;
-                    bool has = ConsolidateTime.Any(x => (x.EmployeeId == objconsilidate.EmployeeId) && (x.Date == objconsilidate.Date));
-                    if (has)
+                    if (tiempoingreso != DateTime.MaxValue)
                     {
-                        for (int h = 0; h < ConsolidateTime.Count; h++)
+                        Consolidated objconsilidate = new Consolidated();
+                        TimeSpan minutos = tiemposalida - tiempoingreso;
+                        double intmunitos = minutos.TotalMinutes;
+                        listTimeregister[posicioni].Consolidated = true;
+                        listTimeregister[posicionj].Consolidated = true;
+                        TableOperation findOperationi = TableOperation.Retrieve<TimeregisterEntity>("TimeRegister", listTimeregister[posicioni].RowKey);
+                        TableResult findResulti = await timeregisterTable.ExecuteAsync(findOperationi);
+                        TimeregisterEntity timeregisterEntityi = (TimeregisterEntity)findResulti.Result;
+                        timeregisterEntityi.Consolidated = true;
+                        TableOperation addOperationi = TableOperation.Replace(timeregisterEntityi);
+                        await timeregisterTable.ExecuteAsync(addOperationi);
+
+                        TableOperation findOperationj = TableOperation.Retrieve<TimeregisterEntity>("TimeRegister", listTimeregister[posicionj].RowKey);
+                        TableResult findResultj = await timeregisterTable.ExecuteAsync(findOperationj);
+                        TimeregisterEntity timeregisterEntityj = (TimeregisterEntity)findResultj.Result;
+                        timeregisterEntityj.Consolidated = true;
+                        TableOperation addOperationj = TableOperation.Replace(timeregisterEntityj);
+                        await timeregisterTable.ExecuteAsync(addOperationj);
+
+
+
+                        objconsilidate.EmployeeId = listTimeregister[posicioni].EmployeeId;
+                        //objconsilidate.Date =listTimeregister[posicioni].Date;
+                        DateTime aux = Convert.ToDateTime(listTimeregister[posicioni].Date);
+                        string straux = aux.ToString("yyyy-MM-dd");
+                        objconsilidate.Date = straux;
+                        objconsilidate.Minutes = intmunitos;
+                        bool has = ConsolidateTime.Any(x => (x.EmployeeId == objconsilidate.EmployeeId) && (x.Date == objconsilidate.Date));
+                        if (has)
                         {
-                            if (ConsolidateTime[h].EmployeeId == objconsilidate.EmployeeId)
+                            for (int h = 0; h < ConsolidateTime.Count; h++)
                             {
-                                ConsolidateTime[h].Minutes = ConsolidateTime[h].Minutes + objconsilidate.Minutes;
+                                if (ConsolidateTime[h].EmployeeId == objconsilidate.EmployeeId)
+                                {
+                                    ConsolidateTime[h].Minutes = ConsolidateTime[h].Minutes + objconsilidate.Minutes;
+                                }
+
                             }
+                            tiempoingreso = DateTime.MaxValue;
+                            tiemposalida = DateTime.MaxValue;
 
                         }
-                        tiempoingreso = DateTime.MaxValue;
-                        tiemposalida = DateTime.MaxValue;
+                        else
+                        {
+                            ConsolidateTime.Add(objconsilidate);
+                            tiempoingreso = DateTime.MaxValue;
+                            tiemposalida = DateTime.MaxValue;
+                        }
 
                     }
-                    else
-                    {
-                        ConsolidateTime.Add(objconsilidate);
-                        tiempoingreso = DateTime.MaxValue;
-                        tiemposalida = DateTime.MaxValue;
-                    }
-
-                }   
+                }
             }
             
             foreach (Consolidated consolidated in ConsolidateTime)

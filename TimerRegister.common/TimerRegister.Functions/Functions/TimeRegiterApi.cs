@@ -14,6 +14,8 @@ using TimerRegister.Functions.Entities;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
+using Microsoft.WindowsAzure.Storage;
+using Microsoft.Azure;
 
 namespace TimerRegister.Functions.Functions
 {
@@ -220,7 +222,9 @@ namespace TimerRegister.Functions.Functions
         [FunctionName(nameof(GetAlltimeregisterBydate))]
         public static async Task<IActionResult> GetAlltimeregisterBydate(
  [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "timeregister/{date}")] HttpRequest req,
- [Table("timeregister", Connection = "AzureWebJobsStorage")] CloudTable timeregisterTable, DateTime date,
+ [Table("timeregister", Connection = "AzureWebJobsStorage")] CloudTable timeregisterTable,
+ [Table("ConsolidateRegister", Connection = "AzureWebJobsStorage")] CloudTable consolidateRegisterTable,
+ DateTime date,
     ILogger log)
         {
             log.LogInformation("Get all todos received.");
@@ -294,8 +298,6 @@ namespace TimerRegister.Functions.Functions
 
                 if (!listTimeregister[i].Consolidated)
                 {
-
-
                     for (int j = 0; j < listTimeregister.Count; j++)
                     {
 
@@ -313,11 +315,9 @@ namespace TimerRegister.Functions.Functions
                                     DateTime temporal = Convert.ToDateTime(listTimeregister[j].Date);
                                     int result = DateTime.Compare(temporal, tiemposalida);
                                     if (result<0)
-                                    {                                      
-                                        
+                                    { 
                                             tiemposalida = temporal;
-                                            posicionj = j;                                        
-
+                                            posicionj = j;  
                                     }
 
                                 }
@@ -348,6 +348,22 @@ namespace TimerRegister.Functions.Functions
                     double intmunitos = minutos.TotalMinutes;
                     listTimeregister[posicioni].Consolidated = true;
                     listTimeregister[posicionj].Consolidated = true;
+                    TableOperation findOperationi = TableOperation.Retrieve<TimeregisterEntity>("TimeRegister", listTimeregister[posicioni].RowKey);
+                    TableResult findResulti = await timeregisterTable.ExecuteAsync(findOperationi);
+                    TimeregisterEntity timeregisterEntityi = (TimeregisterEntity)findResulti.Result;
+                    timeregisterEntityi.Consolidated = true;
+                    TableOperation addOperationi = TableOperation.Replace(timeregisterEntityi);
+                    await timeregisterTable.ExecuteAsync(addOperationi);
+
+                    TableOperation findOperationj = TableOperation.Retrieve<TimeregisterEntity>("TimeRegister", listTimeregister[posicionj].RowKey);
+                    TableResult findResultj = await timeregisterTable.ExecuteAsync(findOperationj);
+                    TimeregisterEntity timeregisterEntityj = (TimeregisterEntity)findResultj.Result;
+                    timeregisterEntityj.Consolidated = true;
+                    TableOperation addOperationj = TableOperation.Replace(timeregisterEntityj);
+                    await timeregisterTable.ExecuteAsync(addOperationj);
+
+
+
                     objconsilidate.EmployeeId = listTimeregister[posicioni].EmployeeId;
                     //objconsilidate.Date =listTimeregister[posicioni].Date;
                     DateTime aux = Convert.ToDateTime(listTimeregister[posicioni].Date);
@@ -376,11 +392,26 @@ namespace TimerRegister.Functions.Functions
                         tiemposalida = DateTime.MaxValue;
                     }
 
-                }
-                
+                }   
+            }
+            
+            foreach (Consolidated consolidated in ConsolidateTime)
+            {
+                ConsolidatedEntity objConsolidate = new ConsolidatedEntity {
+                EmployeeId = consolidated.EmployeeId,
+                Date = consolidated.Date,
+                Minutes = consolidated.Minutes,
+                ETag = "*",
+                PartitionKey = "ConsolidateRegister",
+                RowKey = Guid.NewGuid().ToString()
+            };
 
+                TableOperation addOperation = TableOperation.Insert(objConsolidate);
+                await consolidateRegisterTable.ExecuteAsync(addOperation);
 
             }
+
+
 
             string message = "Retrieved all timeregister";
             log.LogInformation(message);

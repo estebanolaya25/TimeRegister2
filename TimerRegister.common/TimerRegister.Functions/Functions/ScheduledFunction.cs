@@ -21,7 +21,7 @@ namespace TimerRegister.Functions.Functions
         [Table("ConsolidateRegister", Connection = "AzureWebJobsStorage")] CloudTable consolidateRegisterTable,
             ILogger log)
         {
-            log.LogInformation("Get all todos received.");
+            log.LogInformation("consolidation process begins!.");
 
             TableQuery<TimeregisterEntity> query = new TableQuery<TimeregisterEntity>();
             TableQuerySegment<TimeregisterEntity> timeregister = await timeregisterTable.ExecuteQuerySegmentedAsync(query, null);
@@ -45,29 +45,7 @@ namespace TimerRegister.Functions.Functions
 
             listTimeregister = listTimeregister.OrderBy(register => register.EmployeeId).ThenBy(register => register.Timestamp).ToList();
 
-            /*
-            if (listTimeregister.Count != 0)
-            {
-                string message = "Retrieved all timeregister";
-                log.LogInformation(message);
-                return new OkObjectResult(new Response
-                {
-                    IsSuccess = true,
-                    Message = message,
-                    Result = listTimeregister
-                });
-            }else {
-                string message = $"There is not any Register for EmployeeId : {date} ";
-                log.LogInformation(message);
-                return new OkObjectResult(new Response
-                {
-                    IsSuccess = false,
-                    Message = message,
-                    Result = listTimeregister
-                });
-
-            }*/
-
+           
             List<Consolidated> ConsolidateTime = new List<Consolidated>();
 
             DateTime tiempoingreso = DateTime.MaxValue;

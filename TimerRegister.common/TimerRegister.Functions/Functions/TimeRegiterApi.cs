@@ -71,7 +71,7 @@ namespace TimerRegister.Functions.Functions
          [Table("timeregister", Connection = "AzureWebJobsStorage")] CloudTable timeregisterTable, int IdEmpleado,
             ILogger log)
         {
-            log.LogInformation("Get all todos received.");
+            log.LogInformation("EmployedId Received");
 
             TableQuery<TimeregisterEntity> query = new TableQuery<TimeregisterEntity>();
             TableQuerySegment<TimeregisterEntity> timeregister = await timeregisterTable.ExecuteQuerySegmentedAsync(query, null);
@@ -122,17 +122,17 @@ namespace TimerRegister.Functions.Functions
 
         [FunctionName(nameof(GetAllRegistedTime))]
         public static async Task<IActionResult> GetAllRegistedTime(
-   [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "timeregister")] HttpRequest req,
+   [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "getalltimeregister")] HttpRequest req,
    [Table("timeregister", Connection = "AzureWebJobsStorage")] CloudTable timeregisterTable,
    ILogger log)
         {
-            log.LogInformation("Get all todos received.");
+            log.LogInformation("Get all registered time received.");
 
             TableQuery<TimeregisterEntity> query = new TableQuery<TimeregisterEntity>();
             TableQuerySegment<TimeregisterEntity> todos = await timeregisterTable.ExecuteQuerySegmentedAsync(query, null);
 
 
-            string message = "Retrieved all todos";
+            string message = "Retrieved all registered time";
             log.LogInformation(message);
             return new OkObjectResult(new Response
             {
@@ -149,7 +149,7 @@ namespace TimerRegister.Functions.Functions
    string id,
    ILogger log)
         {
-            log.LogInformation($"Update for to do :{id}, received.");
+            log.LogInformation($"Update for registered time :{id}, received.");
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             Timeregister timeregister = JsonConvert.DeserializeObject<Timeregister>(requestBody);
 
@@ -175,7 +175,7 @@ namespace TimerRegister.Functions.Functions
             TableOperation addOperation = TableOperation.Replace(timeregisterEntity);
             await timeregisterTable.ExecuteAsync(addOperation);
 
-            string message = $"Todo: {id}, is Update";
+            string message = $"registered time : {id}, is Update";
             log.LogInformation(message);
             return new OkObjectResult(new Response
             {
@@ -194,14 +194,14 @@ namespace TimerRegister.Functions.Functions
    [Table("timeregister", Connection = "AzureWebJobsStorage")] CloudTable todoTable, string id,
    ILogger log)
         {
-            log.LogInformation($"Delete todo:{id} received.");
+            log.LogInformation($"Delete registered time :{id} received.");
 
             if (timeregisterEntity == null)
             {
                 return new BadRequestObjectResult(new Response
                 {
                     IsSuccess = false,
-                    Message = "todo not found."
+                    Message = "registered time not found."
 
                 });
             }
@@ -218,14 +218,14 @@ namespace TimerRegister.Functions.Functions
         }
 
 
-        [FunctionName(nameof(GetConsolidate))]
-        public static async Task<IActionResult> GetConsolidate(
- [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "timeregister/Consolidate")] HttpRequest req,
+        [FunctionName(nameof(consolidate))]
+        public static async Task<IActionResult> consolidate(
+ [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "consolidate")] HttpRequest req,
  [Table("timeregister", Connection = "AzureWebJobsStorage")] CloudTable timeregisterTable,
  [Table("ConsolidateRegister", Connection = "AzureWebJobsStorage")] CloudTable consolidateRegisterTable,
     ILogger log)
         {
-            log.LogInformation("Get all todos received.");
+            log.LogInformation("consolidation process begins!.");
 
             TableQuery<TimeregisterEntity> query = new TableQuery<TimeregisterEntity>();
             TableQuerySegment<TimeregisterEntity> timeregister = await timeregisterTable.ExecuteQuerySegmentedAsync(query, null);
@@ -248,29 +248,6 @@ namespace TimerRegister.Functions.Functions
             }
 
             listTimeregister = listTimeregister.OrderBy(register => register.EmployeeId).ThenBy(register => register.Timestamp).ToList();
-
-            /*
-            if (listTimeregister.Count != 0)
-            {
-                string message = "Retrieved all timeregister";
-                log.LogInformation(message);
-                return new OkObjectResult(new Response
-                {
-                    IsSuccess = true,
-                    Message = message,
-                    Result = listTimeregister
-                });
-            }else {
-                string message = $"There is not any Register for EmployeeId : {date} ";
-                log.LogInformation(message);
-                return new OkObjectResult(new Response
-                {
-                    IsSuccess = false,
-                    Message = message,
-                    Result = listTimeregister
-                });
-
-            }*/
 
             List<Consolidated> ConsolidateTime = new List<Consolidated>();
 
@@ -422,6 +399,88 @@ namespace TimerRegister.Functions.Functions
 
         }
 
+        [FunctionName(nameof(GetAllConsolidatedRegister))]
+        public static async Task<IActionResult> GetAllConsolidatedRegister(
+  [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "allconsolidatedregister")] HttpRequest req,
+  [Table("ConsolidateRegister", Connection = "AzureWebJobsStorage")] CloudTable consolidateTable,
+  ILogger log)
+        {
+            log.LogInformation("Get all Consolidated time received.");
+
+            TableQuery<ConsolidatedEntity> query = new TableQuery<ConsolidatedEntity>();
+            TableQuerySegment<ConsolidatedEntity> consolidateRegister = await consolidateTable.ExecuteQuerySegmentedAsync(query, null);
+
+
+            string message = "Retrieved all consolidated time";
+            log.LogInformation(message);
+            return new OkObjectResult(new Response
+            {
+                IsSuccess = true,
+                Message = message,
+                Result = consolidateRegister
+            });
+        }
+
+        [FunctionName(nameof(GetAllConsolidatedRegisterBydate))]
+        public static async Task<IActionResult> GetAllConsolidatedRegisterBydate(
+ [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "allconsolidatedregister/{date}")] HttpRequest req,
+ [Table("ConsolidateRegister", Connection = "AzureWebJobsStorage")] CloudTable consolidateTable,DateTime date,
+ ILogger log)
+        {
+            log.LogInformation("Get all registered time received.");
+
+            TableQuery<ConsolidatedEntity> query = new TableQuery<ConsolidatedEntity>();
+            TableQuerySegment<ConsolidatedEntity> consolidateRegister = await consolidateTable.ExecuteQuerySegmentedAsync(query, null);
+
+
+            List<ConsolidatedEntity> objconsolidated = new List<ConsolidatedEntity>();
+
+            foreach (ConsolidatedEntity objconsolidate in consolidateRegister)
+            {
+                
+                if (objconsolidate.Date == date.ToString("yyyy-MM-dd"))
+                {
+                    ConsolidatedEntity obj = new ConsolidatedEntity();
+                    obj.EmployeeId = objconsolidate.EmployeeId;
+                    obj.Date = objconsolidate.Date;
+                    obj.Minutes = objconsolidate.Minutes;
+                    obj.ETag = objconsolidate.ETag;
+                    obj.PartitionKey = objconsolidate.PartitionKey;
+                    obj.RowKey = objconsolidate.RowKey;
+                    objconsolidated.Add(obj);
+
+                }
+            }
+
+            if (objconsolidated.Count == 0)
+            {
+                string message = $"No consolidate rigisted for date:{date}";
+                log.LogInformation(message);
+                return new OkObjectResult(new Response
+                {
+                    IsSuccess = true,
+                    Message = message,
+                    Result = null
+                }); ;
+
+            }
+            else {
+                string message = "Retrieved all consolidate Register";
+                log.LogInformation(message);
+                return new OkObjectResult(new Response
+                {
+                    IsSuccess = true,
+                    Message = message,
+                    Result = objconsolidated
+                });
+
+            }
+
+
+
+
+            
+        }
 
     }
 }

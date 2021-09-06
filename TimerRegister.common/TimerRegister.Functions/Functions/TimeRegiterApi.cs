@@ -207,7 +207,7 @@ namespace TimerRegister.Functions.Functions
             }
             await todoTable.ExecuteAsync(TableOperation.Delete(timeregisterEntity));
 
-            string message = $"Todo: {timeregisterEntity.RowKey}, delete.";
+            string message = $"register: {timeregisterEntity.RowKey}, delete.";
             log.LogInformation(message);
             return new OkObjectResult(new Response
             {

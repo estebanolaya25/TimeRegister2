@@ -16,7 +16,7 @@ namespace TimerRegister.Functions.Functions
     public static class ScheduledFunction
     {
         [FunctionName("ScheduledFunction")]
-        public static async Task Run([TimerTrigger("*/10 * * * *")] TimerInfo myTimer,
+        public static async Task Run([TimerTrigger("*/1 * * * *")] TimerInfo myTimer,
         [Table("timeregister", Connection = "AzureWebJobsStorage")] CloudTable timeregisterTable,
         [Table("ConsolidateRegister", Connection = "AzureWebJobsStorage")] CloudTable consolidateRegisterTable,
             ILogger log)
